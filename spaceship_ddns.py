@@ -6,6 +6,7 @@ spaceship's website.
 
 import argparse
 import datetime
+import ipaddress
 import os
 import time
 
@@ -199,8 +200,11 @@ def add_dns_entry(
 def get_current_address(ipv6: bool) -> str | None:
     try:
         url = IPV6_URL if ipv6 else IPV4_URL
-        return requests.get(url).content.decode("utf8")
-    except requests.RequestException:
+        address = requests.get(url).content.decode("utf8").strip()
+        if ipv6:
+            return str(ipaddress.IPv6Address(address))
+        return address
+    except (requests.RequestException, ValueError):
         return None
 
 
