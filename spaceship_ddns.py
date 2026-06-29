@@ -55,20 +55,20 @@ def parse_args():
              "Comma-separated for multiple names applied to the same domain.",
         required=False,
     )
-    parser.add_argument(
-        "-6", "--ipv6",
-        action="store_const",
-        const=True,
-        default=False,
-        help="Only update AAAA (IPv6) records",
-    )
-    parser.add_argument(
-        "--ipv4-only",
-        action="store_const",
-        const=True,
-        default=False,
-        help="Only update A (IPv4) records",
-    )
+    # parser.add_argument(
+    #     "-6", "--ipv6-only",
+    #     action="store_const",
+    #     const=True,
+    #     default=False,
+    #     help="Only update AAAA (IPv6) records",
+    # )
+    # parser.add_argument(
+    #     "-4", "--ipv4-only",
+    #     action="store_const",
+    #     const=True,
+    #     default=False,
+    #     help="Only update A (IPv4) records",
+    # )
     args = parser.parse_args()
 
     api_key: str | None = args.api_key
@@ -91,11 +91,13 @@ def parse_args():
     else:
         names = ["@"]
 
-    ipv6 = args.ipv6
-    ipv4_only = args.ipv4_only
+    ipv6 = not os.getenv(
+        "SPACESHIP_DDNS_IPV6_ONLY", "").lower() in ("1", "true", "yes")
+    ipv4 = not os.getenv(
+        "SPACESHIP_DDNS_IPV4_ONLY", "").lower() in ("1", "true", "yes")
 
-    update_aaaa = ipv6 or not ipv4_only
-    update_a = not ipv6 or not ipv4_only
+    update_aaaa = ipv6
+    update_a = ipv4
 
     return domain, names, api_key, api_secret, update_a, update_aaaa
 
