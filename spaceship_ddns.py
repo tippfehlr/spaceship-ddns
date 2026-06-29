@@ -7,6 +7,7 @@ spaceship's website.
 import argparse
 import datetime
 import os
+import time
 
 import requests
 
@@ -55,6 +56,13 @@ def parse_args():
              "Comma-separated for multiple names applied to the same domain.",
         required=False,
     )
+    parser.add_argument(
+        "-i", "--interval",
+        type=int,
+        help="Interval in minutes between updates. "
+             "If not set, runs once and exits.",
+        required=False,
+    )
     # parser.add_argument(
     #     "-6", "--ipv6-only",
     #     action="store_const",
@@ -92,14 +100,20 @@ def parse_args():
         names = ["@"]
 
     ipv6 = not os.getenv(
-        "SPACESHIP_DDNS_IPV6_ONLY", "").lower() in ("1", "true", "yes")
-    ipv4 = not os.getenv(
         "SPACESHIP_DDNS_IPV4_ONLY", "").lower() in ("1", "true", "yes")
+    ipv4 = not os.getenv(
+        "SPACESHIP_DDNS_IPV6_ONLY", "").lower() in ("1", "true", "yes")
 
     update_aaaa = ipv6
     update_a = ipv4
 
-    return domain, names, api_key, api_secret, update_a, update_aaaa
+    interval: int | None = args.interval
+    if interval is None:
+        interval_env = os.getenv("SPACESHIP_DDNS_INTERVAL")
+        if interval_env is not None:
+            interval = int(interval_env)
+
+    return domain, names, api_key, api_secret, update_a, update_aaaa, interval
 
 
 def get_dns_entries(domain: str, api_key: str, api_secret: str):
@@ -273,14 +287,21 @@ def update_domain(
 
 
 def main():
-    domain, names, api_key, api_secret, update_a, update_aaaa = parse_args()
+    domain, names, api_key, api_secret, update_a, update_aaaa, interval = parse_args()
 
     assert api_key is not None
     assert api_secret is not None
     assert domain is not None
 
-    for name in names:
-        update_domain(domain, api_key, api_secret, name, update_a, update_aaaa)
+    while True:
+        for name in names:
+            update_domain(domain, api_key, api_secret,
+                          name, update_a, update_aaaa)
+
+        if interval is None:
+            break
+
+        time.sleep(interval * 60)
 
 
 if __name__ == "__main__":
